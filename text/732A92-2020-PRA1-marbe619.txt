@@ -1,0 +1,8 @@
+The aim of the project is to generate text using generative adversarial
+networks (GANs), where both components are recurrent/LSTM neural networks.
+The training data set is a collection of internet comments from YouTube,
+Twitter and Kaggle also containing a (binary) negative sentiment indicator.
+
+The model output is evaluated using the result of Markov chain trained on
+the same data. Absolute quality of the text is evaluated manually against
+a test set. Sentiment input integration into LSTM GAN is discussed.
