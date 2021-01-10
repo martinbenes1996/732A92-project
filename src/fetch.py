@@ -40,7 +40,7 @@ def parse_figshare_dataset(url, sentiment = None, source = None, columns = None)
     x['source'] = source if source is not None else 'unknown'
     columns['source'] = 'source'
     # project only wanted columns
-    return x[[columns.values()]]
+    return x[list(columns.values())]
 
 def parse_figshare_twitter_dataset(*args, **kwargs):
     """FigShare Twitter dataset downloading and parsing."""
@@ -55,7 +55,7 @@ def parse_figshare_youtube_kaggle_dataset(*args, **kwargs):
                                sentiment = 'bully', columns = {'ed_label_1': None})
     return x
 
-def bully_dataset():
+def bully_dataset(tokenize = True):
     """Fetch Cyberbully dataset."""
     # parse datasets
     aggression_df = parse_figshare_dataset(AGGRESSION_URL, 'aggression')
@@ -89,32 +89,31 @@ def bully_dataset():
         df = df.drop('sentiment', axis = 1)  
     except:
         pass
-    logging.info("multiclass sentiment to binary sentiment")  
-    # load English tokenizer
-    nlp = spacy.load("en_core_web_sm",
-                     disable=["tagger","ner","textcat"])#"parser",,]) # to speed up
+    logging.info("multiclass sentiment to binary sentiment")
+    
+    if tokenize:
+        # load English tokenizer
+        nlp = spacy.load("en_core_web_sm",
+                         disable=["tagger","ner","textcat"])#"parser",,]) # to speed up
 
-    # implement tokenizer
-    def any_alnum(x):
-        return any([c.isalnum() for c in x])
-    def preprocess_words(text):
-        return [tok.text for tok in nlp(text) if any_alnum(tok.text)]
-    # tokenization
-    logging.info("tokenizing")   
-    df['text'] = df.text.apply(preprocess_words)
-    # text to str
-    logging.info("tokens to str")
-    df['text'] = df.text.apply(str)
-    # save
-    logging.info("writing to output")
-    df.to_csv('data/words.csv', index = False)
-    # mount drive
-    #from google.colab import drive
-    #drive.mount('/drive', force_remount=True)
-    # output to csv (to drive)
-    #df.to_csv('/drive/My Drive/Colab Notebooks/data/words.csv', index = False)
+        # implement tokenizer
+        def any_alnum(x):
+            return any([c.isalnum() for c in x])
+        def preprocess_words(text):
+            return [tok.text for tok in nlp(text) if any_alnum(tok.text)]
+        # tokenization
+        logging.info("tokenizing")   
+        df['text'] = df.text.apply(preprocess_words)
+        # text to str
+        logging.info("tokens to str")
+        df['text'] = df.text.apply(str)
+        # save
+        logging.info("writing to output")
+        df.to_csv('data/words.csv', index = False)
+    else:
+        df.to_csv('data/sentences.csv', index = False)
     
 if __name__ == "__main__":
     logging.basicConfig(level = logging.INFO)
-    bully_dataset()
+    bully_dataset(tokenize = False)
     
