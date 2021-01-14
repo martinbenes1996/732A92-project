@@ -11,6 +11,7 @@ from torch import nn, cuda, optim, autograd
 
 sys.path.append('src')
 import config
+import embeddings
 
 class Generator(nn.Module):
   """Generator."""
@@ -62,7 +63,7 @@ class Generator(nn.Module):
 
   def generate_input(self, N):
     # generate
-    return torch.randn((N,self.seq_len,self.input_size),
+    return torch.randint(embeddings.vocab_size(), size = (N,self.seq_len,self.input_size),
                        dtype = torch.float32)\
         .to(config.device)
         

@@ -7,14 +7,13 @@ Performs embedding transformations.
 
 import logging
 import sys
-from gensim import models
+import gensim
 from rapidfuzz import fuzz, process
 import pandas as pd
 import pickle
 import torch
 from transformers import BertTokenizer, BertModel
 
-logging.basicConfig(level = logging.INFO)
 sys.path.append('src')
 import config
 import dataset
@@ -22,13 +21,15 @@ import dataset
 
 _model_cache = {}
 def CachedModel(path, only_runtime = False):
+    if config.from_drive:
+        path = 'drive/MyDrive/Colab Notebooks/' + path
     def ModelLoader(decoratedF):
         model = None
         def FReplacer(*args, retrain = False, **kw):
             nonlocal model
             global _model_cache
             if not retrain and path in _model_cache:
-                logging.info("model %s loaded from cache" % (path))
+                #logging.info("model %s loaded from cache" % (path))
                 return _model_cache[path]
             if not only_runtime and not retrain and model is None:
                 try:
@@ -44,9 +45,12 @@ def CachedModel(path, only_runtime = False):
                 logging.info("retraining model %s" % (path))
                 model = decoratedF(*args, **kw)
                 if not only_runtime:
-                    with open(path, 'wb') as model_file:
-                        pickle.dump(model, model_file)
-                    logging.info("model %s written" % (path))
+                    try:
+                        with open(path, 'wb') as model_file:
+                            pickle.dump(model, model_file)
+                        logging.info("model %s written", path)
+                    except:
+                        logging.warning('failed saving model %s, ignored', path)
             _model_cache[path] = model
             return model
         return FReplacer
@@ -56,7 +60,7 @@ _data_cache = {}
 def LoadData(**data):
     def DataLoader(decoratedF):
         _data = None
-        def FReplacer(*args, from_drive = False, **kw):
+        def FReplacer(*args, **kw):
             nonlocal _data,data
             global _data_cache
             if _data is None:
@@ -65,20 +69,48 @@ def LoadData(**data):
                     if k in _data_cache:
                         _data[k] = _data_cache[k]
                     else:
-                        df = v(from_drive = from_drive)
+                        df = v()
                         _data[k] = df
                         _data_cache[k] = df
             return decoratedF(*args, **_data, **kw)
         return FReplacer
     return DataLoader
 
+import matplotlib.pyplot as plt
+def error_plot(model, output = None, log = False):
+    losses_g,losses_d = model['losses_g'],model['losses_d']
+
+    # xgrid
+    lsp = np.linspace(0,len(losses_g)-1,num=len(losses_g))
+    N = len(losses_g) / len(trainloader)
+    xgrid = lsp / N
+
+    # error
+    if log_error_plot:
+        plt.plot(xgrid, np.log(losses_g), c = 'r')
+        plt.plot(xgrid, np.log(losses_d), c = 'g')
+
+    # log-error
+    else:
+        plt.plot(xgrid, losses_g, c = 'r')
+        plt.plot(xgrid, losses_d, c = 'g')
+
+    plt.rcParams.update({'font.size': 16})
+    plt.legend(['Generator', 'Discriminator'])
+    plt.xlabel('Batches/Epochs')
+    plt.ylabel('Loss')
+    if output is not None:
+        plt.savefig(output)
+    else:
+        plt.show()
+
 @CachedModel(path = 'models/incremental.model')
-@LoadData(words = dataset._read_words)
-def ScalarIncremental(words, *args, **kw):
+@LoadData(words_tr = dataset._read_train_words)
+def ScalarIncremental(words_tr):
     logging.warning("training ScalarIncremental")
     # collect vocabulary
     model,i = {},1
-    for sentence in words.text:
+    for sentence in words_tr.text:
         for word in sentence:
             if word.lower() not in model:
                 model[word.lower()] = i
@@ -86,20 +118,20 @@ def ScalarIncremental(words, *args, **kw):
     return model
 
 @CachedModel(path = 'models/word2vec.model')
-@LoadData(words = dataset._read_words, scalar_model = ScalarIncremental)
-def Word2Vec(words, scalar_model, *args, **kw):
+@LoadData(words_tr = dataset._read_train_words, scalar_model = ScalarIncremental)
+def Word2Vec(words_tr, scalar_model):
     logging.warning("training Word2Vec")
     # build model
-    word2vec = gensim.models.Word2Vec(sentences=words.text,
+    word2vec = gensim.models.Word2Vec(sentences=words_tr.text,
                                       size=config.input_size,
-                                      workers=4, window=5, iter=10)
+                                       workers=4, window=5, iter=10)
     return word2vec
 
 @CachedModel(path = 'models/closest_word2vec.model')
-@LoadData(words = dataset._read_words,
+@LoadData(words_tr = dataset._read_train_words,
           word2vec = Word2Vec,
           scalar_model = ScalarIncremental)
-def ClosestWord2Vec(words, word2vec, scalar_model):
+def ClosestWord2Vec(words_tr, word2vec, scalar_model):
     logging.warning("training ClosestWord2Vec")
     # build vocabulary
     vocabulary = list(word2vec.wv.vocab.keys())
@@ -118,9 +150,17 @@ def ClosestWord2Vec(words, word2vec, scalar_model):
     return (vectors, keys)  
 
 @CachedModel(path = 'models/bert-base-uncased', only_runtime = True)
-def Bert():
+@LoadData(sentences_tr = dataset._read_train_sentences)
+def Bert(sentences_tr):
+    logging.warning("training Bert")
+    # path
+    path = './models/bert-base-uncased/'
+    if config.from_drive:
+        path = './drive/My Drive/Colab Notebooks/models/bert-base-uncased/'
+    # load model
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    model = BertModel.from_pretrained('./models/bert-base-uncased/')
+    model = BertModel.from_pretrained(path)\
+        .to(config.device)
     
     return (tokenizer,model)
             

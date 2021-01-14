@@ -8,21 +8,20 @@ Created on Sun Jan 10 16:32:22 2021
 import sys
 import math
 import torch
+import numpy as np
 from torch import nn, cuda, optim, autograd
+import matplotlib.pyplot as plt
 sys.path.append('src')
 import logging
-logging.basicConfig(level = logging.INFO)
 
 import config
 import gan
-import embeddings
+from embeddings import load
 
-def create_training_step(create_models):
+def create_training_step(model_g,model_d):
     # create models
-    model_g,model_d = create_models()
     model_g.train()
     model_d.train()
-    logging.info("empty models %s created", create_models)
     # generate states
     state_g = model_g.init_state()
     state_d = model_d.init_state()
@@ -37,16 +36,21 @@ def create_training_step(create_models):
         """"""
         # process input
         nonlocal model_g,model_d,optim_g,optim_d,crit_g,crit_d
+        #logging.info("batch: %s" % (batch.shape,))
         batch_size = batch.shape[0]
         state_g,state_d = states
         state_g = [s.detach() for s in state_g]
         state_d = [s.detach() for s in state_d]
         # generator input
         input_g = model_g.generate_input(batch_size)
+        #print("input_g: %s" % (input_g.shape,))
         label_g = torch.zeros([batch_size]).to(config.device)
         # generator forward propagation
         #logging.info("generator forward propagation")
         pred_g,state_g = model_g(input_g, state_g)
+        #print("model_g: %s" % (model_g))
+        #print("pred_g: %s" % (pred_g.shape,))
+        #print("batch: %s" % (batch.shape,))
         input_d = torch.cat([pred_g, batch], 0)
         label_d = torch.cat([torch.zeros([pred_g.shape[0]]),
                              torch.ones([batch.shape[0]])], 0)\
@@ -126,41 +130,72 @@ def criterions_labels(crit_d = 'bce'):
 
     return crit_g,criterion_d,true_label,postprocess_d
 
-def ScalarIncremental(from_drive = False):
+def ScalarIncremental():
     """"""
-    train_step,states = create_training_step(gan.ScalarIncremental)
+    model_g,model_d = gan.empty.ScalarIncremental()
+    train_step,states = create_training_step(model_g,model_d)
     logging.info("initializing ScalarIncremental model training")
     # iterate batches
     losses_g,losses_d = [],[]
     for epoch in range(config.num_epochs):
-        for i,batch in enumerate(embeddings.load.ScalarIncremental(from_drive=from_drive)):
-            logging.info("received batch %d: %s", i, batch.shape)
+        dataloader = load.trainset.ScalarIncremental()
+        for i,batch in enumerate(dataloader):
+            #logging.info("received batch %d: %s", i, batch.shape)
             states,losses = train_step(epoch, i, batch, states)
             losses_g.append(losses[0])
             losses_d.append(losses[1])
         print("Epoch %d/%d: D error %.6f, G error %.6f" %
           (epoch + 1, config.num_epochs, losses_d[-1], losses_g[-1]))
-
-config.batch_size = 5
-ScalarIncremental(from_drive = True)
-
+    return {'generator': model_g.to(torch.device('cpu')),
+            'state_g': [s.detach().to(torch.device('cpu')) for s in states[0]],
+            'losses_g': losses_g,
+            'discriminator': model_d.to(torch.device('cpu')),
+            'state_d': [s.detach().to(torch.device('cpu')) for s in states[1]],
+            'losses_d': losses_d}
+    
 def ClosestWord2Vec():
-    optimizer_g = optim.SGD(model_g.parameters(), lr=learning_rate, momentum=0.9)
-    optimizer_d = optim.SGD(model_d.parameters(), lr=learning_rate, momentum=0.9)
-    vector_x = torch.zeros((config.batch_size,config.seq_len,config.input_size))\
-        .to(config.device)
-    for i,batch in enumerate(embeddings.load.ClosestWord2Vec()):
-        # transform batch
-        for sample in range(batch_size):
-            for word in range(D.seq_len):
-                vector_x[sample,word,:] = X_vectors[int(data_x[sample,word]),:]
-        data_x = vector_x[:batch_size]
-        print("Received batch %d: %s" % (i,batch.shape))
+    """"""
+    model_g,model_d = gan.empty.ClosestWord2Vec()
+    train_step,states = create_training_step(model_g,model_d)
+    logging.info("initializing ClosestWord2Vec model training")
+    # iterate batches
+    losses_g,losses_d = [],[]
+    for epoch in range(config.num_epochs):
+        dataloader = load.trainset.ClosestWord2Vec()
+        for i,batch in enumerate(dataloader):
+            #logging.info("received batch %d: %s", i, batch.shape)
+            states,losses = train_step(epoch, i, batch, states)
+            losses_g.append(losses[0])
+            losses_d.append(losses[1])
+        print("Epoch %d/%d: D error %.6f, G error %.6f" %
+          (epoch + 1, config.num_epochs, losses_d[-1], losses_g[-1]))
+    return {'generator': model_g.to(torch.device('cpu')),
+            'state_g': [s.detach().to(torch.device('cpu')) for s in states[0]],
+            'losses_g': losses_g,
+            'discriminator': model_d.to(torch.device('cpu')),
+            'state_d': [s.detach().to(torch.device('cpu')) for s in states[1]],
+            'losses_d': losses_d}
 
 def Bert():
-    optimizer_g = optim.SGD(model_g.parameters(), lr=learning_rate, momentum=0.9)
-    optimizer_d = optim.SGD(model_d.parameters(), lr=learning_rate, momentum=0.9)
-    for i,batch in enumerate(embeddings.load.Bert()):
-        print("Received batch %d: %s" % (i,batch.shape))
-        #break
-ScalarIncremental()
+    """"""
+    model_g,model_d = gan.empty.Bert()
+    train_step,states = create_training_step(model_g,model_d)
+    logging.info("initializing Bert model training")
+    # iterate batches
+    losses_g,losses_d = [],[]
+    for epoch in range(config.num_epochs):
+        dataloader = load.trainset.Bert()
+        for i,batch in enumerate(dataloader):
+            #print("batch %d: %s" % (i, batch.shape))
+            #logging.info("batch %d: %s", i, batch.shape)
+            states,losses = train_step(epoch, i, batch, states)
+            losses_g.append(losses[0])
+            losses_d.append(losses[1])
+        print("Epoch %d/%d: D error %.6f, G error %.6f" %
+          (epoch + 1, config.num_epochs, losses_d[-1], losses_g[-1]))
+    return {'generator': model_g.to(torch.device('cpu')),
+            'state_g': [s.detach().to(torch.device('cpu')) for s in states[0]],
+            'losses_g': losses_g,
+            'discriminator': model_d.to(torch.device('cpu')),
+            'state_d': [s.detach().to(torch.device('cpu')) for s in states[1]],
+            'losses_d': losses_d}

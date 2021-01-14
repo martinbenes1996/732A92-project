@@ -13,6 +13,8 @@ import pandas as pd
 import pickle
 from rapidfuzz import fuzz, process
 import re
+from sklearn.model_selection import train_test_split
+import spacy
 import sys
 plt.rcParams.update({'font.size': 18})
 plt.rcParams["figure.figsize"] = (12,12)
@@ -21,17 +23,15 @@ sys.path.append('src')
 import config
 
 def _path_to_drive(path):
-    return '/drive/My Drive/Colab Notebooks/' + path
+    return 'drive/My Drive/Colab Notebooks/' + path
 
 _words = None
-def _read_words(path = 'data/words.csv', drop_longer = True, from_drive = False):
+def _read_words(path = 'data/words.csv', drop_longer = True):
     """"""
     global _words
-    print(from_drive)
     if _words is not None:
         return _words
-    # drive path
-    if from_drive:
+    if config.from_drive:
         path = _path_to_drive(path)
     # read csv
     words = pd.read_csv(path, encoding='utf8', engine='python')
@@ -55,14 +55,13 @@ def _read_words(path = 'data/words.csv', drop_longer = True, from_drive = False)
     return words
 
 _sentences = None
-def _read_sentences(path = 'data/sentences.csv', from_drive = False):
+def _read_sentences(path = 'data/sentences.csv'):
     """"""
     # cache
     global _sentences
     if _sentences is not None:
         return _sentences
-    # drive path
-    if from_drive:
+    if config.from_drive:
         path = _path_to_drive(path)
     # read csv
     sentences = pd.read_csv(path, encoding='utf8', engine='python')
@@ -71,6 +70,28 @@ def _read_sentences(path = 'data/sentences.csv', from_drive = False):
     # write back
     _sentences = sentences
     return sentences
+
+# split train-test
+def _read_train_words(*args, ratio = .8, **kw):
+    words = _read_words(*args, **kw)
+    words_tr,words_te = train_test_split(words, test_size=1-ratio, random_state=42)
+    logging.warning('train set %s', words_tr.shape)
+    return words_tr
+def _read_test_words(*args, ratio = .8, **kw):
+    words = _read_words(*args, **kw)
+    words_tr,words_te = train_test_split(words, test_size=1-ratio, random_state=42)
+    logging.warning('test set %s', words_te.shape)
+    return words_te
+def _read_train_sentences(*args, ratio = .8, **kw):
+    sentences = _read_sentences(*args, **kw)
+    sentences_tr,sentences_te = train_test_split(sentences, test_size=1-ratio, random_state=42)
+    logging.warning('train set %s', sentences_tr.shape)
+    return sentences_tr
+def _read_test_sentences(*args, ratio = .8, **kw):
+    sentences = _read_sentences(*args, **kw)
+    sentences_tr,sentences_te = train_test_split(sentences, test_size=1-ratio, random_state=42)
+    logging.warning('test set %s', sentences_te.shape)
+    return sentences_te
 
 def word_lens():
     """"""
@@ -115,3 +136,26 @@ def train_data(seq_len = None, retrain = False):
     
     return train_x,train_y
 
+def markov(tokenize = True):
+    # path
+    path = 'output/markov.txt'
+    if config.from_drive:
+        path = _path_to_drive(path)
+    # load
+    df = pd.read_csv(path)
+    df.columns = ['text']
+    # tokenize
+    if tokenize:
+        nlp = spacy.load("en_core_web_sm",
+                         disable=["tagger","ner","textcat"])#"parser",,]) # to speed up
+
+        # implement tokenizer
+        def any_alnum(x):
+            return any([c.isalnum() for c in x])
+        def preprocess_words(text):
+            return [tok.text for tok in nlp(text) if any_alnum(tok.text)]
+        # tokenization
+        logging.info("tokenizing")   
+        df['text'] = df.text.apply(preprocess_words)
+    
+    return df

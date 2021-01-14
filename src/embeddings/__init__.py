@@ -3,6 +3,7 @@
 from . import load
 from . import train
 from . import models
+from . import rev
 
 from .models import *
 

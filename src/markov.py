@@ -11,7 +11,6 @@ TODO:
 import sys
 sys.path.append('src')
 import logging
-logging.basicConfig(level = logging.INFO)
 
 import numpy as np
 import pandas as pd
