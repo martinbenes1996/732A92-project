@@ -18,14 +18,16 @@ sys.path.append('src')
 import config
 import dataset
 
-
 _model_cache = {}
 def CachedModel(path, only_runtime = False):
+    """Caching the trained model."""
     if config.from_drive:
         path = 'drive/MyDrive/Colab Notebooks/' + path
     def ModelLoader(decoratedF):
+        """"""
         model = None
         def FReplacer(*args, retrain = False, **kw):
+            """"""
             nonlocal model
             global _model_cache
             if not retrain and path in _model_cache:
@@ -58,9 +60,12 @@ def CachedModel(path, only_runtime = False):
 
 _data_cache = {}
 def LoadData(**data):
+    """Automatic data loader."""
     def DataLoader(decoratedF):
+        """"""
         _data = None
         def FReplacer(*args, **kw):
+            """"""
             nonlocal _data,data
             global _data_cache
             if _data is None:
@@ -76,37 +81,10 @@ def LoadData(**data):
         return FReplacer
     return DataLoader
 
-import matplotlib.pyplot as plt
-def error_plot(model, output = None, log = False):
-    losses_g,losses_d = model['losses_g'],model['losses_d']
-
-    # xgrid
-    lsp = np.linspace(0,len(losses_g)-1,num=len(losses_g))
-    N = len(losses_g) / len(trainloader)
-    xgrid = lsp / N
-
-    # error
-    if log_error_plot:
-        plt.plot(xgrid, np.log(losses_g), c = 'r')
-        plt.plot(xgrid, np.log(losses_d), c = 'g')
-
-    # log-error
-    else:
-        plt.plot(xgrid, losses_g, c = 'r')
-        plt.plot(xgrid, losses_d, c = 'g')
-
-    plt.rcParams.update({'font.size': 16})
-    plt.legend(['Generator', 'Discriminator'])
-    plt.xlabel('Batches/Epochs')
-    plt.ylabel('Loss')
-    if output is not None:
-        plt.savefig(output)
-    else:
-        plt.show()
-
 @CachedModel(path = 'models/incremental.model')
 @LoadData(words_tr = dataset._read_train_words)
 def ScalarIncremental(words_tr):
+    """Trains ScalarIncremental embedding."""
     logging.warning("training ScalarIncremental")
     # collect vocabulary
     model,i = {},1
@@ -120,6 +98,7 @@ def ScalarIncremental(words_tr):
 @CachedModel(path = 'models/word2vec.model')
 @LoadData(words_tr = dataset._read_train_words, scalar_model = ScalarIncremental)
 def Word2Vec(words_tr, scalar_model):
+    """Trains Word2Vec embedding."""
     logging.warning("training Word2Vec")
     # build model
     word2vec = gensim.models.Word2Vec(sentences=words_tr.text,
@@ -132,6 +111,7 @@ def Word2Vec(words_tr, scalar_model):
           word2vec = Word2Vec,
           scalar_model = ScalarIncremental)
 def ClosestWord2Vec(words_tr, word2vec, scalar_model):
+    """Trains ClosestWord2Vec embedding."""
     logging.warning("training ClosestWord2Vec")
     # build vocabulary
     vocabulary = list(word2vec.wv.vocab.keys())
@@ -152,6 +132,7 @@ def ClosestWord2Vec(words_tr, word2vec, scalar_model):
 @CachedModel(path = 'models/bert-base-uncased', only_runtime = True)
 @LoadData(sentences_tr = dataset._read_train_sentences)
 def Bert(sentences_tr):
+    """Trains Bert embedding."""
     logging.warning("training Bert")
     # path
     path = './models/bert-base-uncased/'
@@ -166,4 +147,4 @@ def Bert(sentences_tr):
             
 
 
-__all__ = ["ScalarIncremental","Word2Vec","ClosestWord2Vec"]
+__all__ = ["ScalarIncremental","Word2Vec","ClosestWord2Vec","Bert"]

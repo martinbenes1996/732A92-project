@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jan 10 17:43:41 2021
+Implements the operations with the GAN model: initialization, loading, saving.
 
-@author: martin
+@author: Martin Benes.
 """
 
 import logging
@@ -17,9 +17,10 @@ from generator import *
 from discriminator import *
 
 class empty:
+    """Initializes empty models to be trained."""
     @staticmethod
     def ScalarIncremental():
-        """"""
+        """Initializes empty ScalarIncremental model."""
         # Generator
         G = Generator(
             input_size = 1,
@@ -41,7 +42,7 @@ class empty:
         return G,D
     @staticmethod
     def ClosestWord2Vec():
-        """"""
+        """Initializes empty Closest Word2Vec model."""
         # Generator
         G = Generator(
             input_size = config.input_size,
@@ -63,7 +64,7 @@ class empty:
         return G,D
     @staticmethod
     def Bert():
-        """"""
+        """Initializes empty Bert model."""
         # Generator
         G = Generator(
             input_size = config.bert_input_size,
@@ -85,19 +86,27 @@ class empty:
         return G,D
 
 def load(path):
-    """"""
+    """Loads model from given path.
+    
+    Args:
+        path (str): Path to read from. Can be redirected to gdrive.
+    """
     # load
     if config.from_drive:
         path = 'drive/My Drive/Colab Notebooks/' + path
     with open(path, 'rb') as fp:
-        #model = torch.load(fp, map_location=config.device)
         model = pickle.load(fp)
     logging.info("model %s loaded", path)
     # return
     return model
 
 def save(model, path):
-    """"""
+    """Saves model to given path.
+    
+    Args:
+        model (): Object to be saved.
+        path (str): Path to save to. Can be redirected to gdrive.
+    """
     # save
     if config.from_drive:
         path = 'drive/My Drive/Colab Notebooks/' + path

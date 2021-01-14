@@ -1,9 +1,12 @@
-# 732A92-project
-Project for 732A92 Text Mining course
+# Generating text using LSTM GAN in PyTorch
 
-## Data
+**Author**: Martin Benes
 
-Data come from [figshare.com](https://figshare.com/articles/Cyberbullying_datasets/12423407).
+**Course:** 732A92 Text Mining
+
+**Abstract:**
+
+The aim of the project is to generate text using generative adversarial networks (GANs), where both components are recurrent/LSTM neural networks. The training data set is a collection of internet comments from YouTube, Twitter and Kaggle also containing a (binary) negative sentiment indicator. The model output is evaluated using the result of Markov chain trained on the same data. Absolute quality of the text is evaluated manually against a test set. Sentiment input integration into LSTM GAN is discussed.
 
 ## Usage
 
@@ -22,7 +25,18 @@ import logging
 logging.basicConfig(level = logging.INFO)
 ```
 
-### Training
+## Data
+
+Data come from [figshare.com](https://figshare.com/articles/Cyberbullying_datasets/12423407). Download and parse the dataset with
+
+```{python}
+import fetch
+
+bully_dataset(tokenize = False) # sentences
+bully_dataset(tokenize = True) # words
+```
+
+## Training
 
 ```{python}
 import gan
@@ -55,7 +69,7 @@ config.num_epochs = 5 # default 10
 config.set_from_drive(False) # ran locally
 ```
 
-### Generate text
+## Generate text
 
 Code will attempt to load the modules from the paths
 above, if not found training is started.
@@ -93,7 +107,7 @@ result = markov.generate_sentences(words = words, N = 1000)
 predictions.to_csv('output/markov.txt', index = False)
 ```
 
-### Measure performance
+## Measure performance
 
 Code will attempt to load the modules from the paths
 above, if not found training is started.

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jan 10 17:37:33 2021
+This module implements the Discriminator model of GAN.
 
-@author: martin
+@author: Martin Benes
 """
 
 import sys
@@ -43,7 +43,12 @@ class Generator(nn.Module):
     self.linear = nn.Linear(hidden_size * seq_len, output_size * seq_len)
 
   def forward(self, input, prev_state = None):
-    """Forward propagation."""
+    """Forward propagation.
+    
+    Args:
+        input (torch.Tensor): Input data batch.
+        prev_state (torch.Tensor): Optional LSTM state.
+    """
     #logging.info("generator: data [seq_len %d, batch_size %d]", input.shape[1], input.shape[0])
 
     h1, state = self.lstm(input, prev_state) # lstm
@@ -54,6 +59,7 @@ class Generator(nn.Module):
     return o, state
   
   def init_state(self):
+    """Generates initial (zero) LSTM state tensor."""
     return (
       torch.zeros(self.num_layers, self.seq_len, self.hidden_size)\
           .to(config.device),
@@ -62,21 +68,13 @@ class Generator(nn.Module):
     )
 
   def generate_input(self, N):
+    """Generates random input for generator.
+    
+    Args:
+        N (int): Size of input (batch).
+    """
     # generate
     return torch.randint(embeddings.vocab_size(), size = (N,self.seq_len,self.input_size),
                        dtype = torch.float32)\
         .to(config.device)
         
-    #def _gen():
-    #  return torch.randint(self.vocab_size, size = (N,seq_len,self.input_size),
-    #                       dtype=torch.float32)
-    #x = _gen()
-    
-    # detect NaN
-    #while torch.isnan(x).any():
-    #  logging.warning("NaN input generated.")
-    #  x = _gen()
-    
-    # result
-    #return x\
-    #  .to(config.device)

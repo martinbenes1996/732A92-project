@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jan 10 17:38:23 2021
+This module implements the Discriminator model of GAN.
 
-@author: martin
+@author: Martin Benes
 """
 
 import sys
@@ -47,7 +47,12 @@ class Discriminator(nn.Module):
     self.lin2_act = nn.Sigmoid()
 
   def forward(self, input, prev_state = None):
-    """Forward propagation."""
+    """Forward propagation.
+    
+    Args:
+        input (torch.Tensor): Input data batch.
+        prev_state (torch.Tensor): Optional LSTM state.
+    """
     #logging.info("discriminator: data [seq_len %d, batch_size %d]", input.shape[1], input.shape[0])
 
     h1, state = self.lstm(input, prev_state) # lstm
@@ -67,6 +72,7 @@ class Discriminator(nn.Module):
     return o, state
 
   def init_state(self):
+    """Generates initial (zero) LSTM state tensor."""
     return (
       autograd.Variable(
           torch.zeros(self.num_layers,self.seq_len,self.hidden_size,

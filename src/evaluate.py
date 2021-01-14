@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Jan 11 00:06:52 2021
+Evaluate functions for trained GAN: loss plot, performance and generating.
 
 @author: martin
 """
@@ -17,25 +17,27 @@ import embeddings
 import gan
 
 def error_plot(model, output = None, log = False):
+    """Plots losses of the model training.
+    
+    Args:
+        model (): Trained model
+        output (str): Path to save the plot. 
+        log (bool): Show log-losses or losses?
+    """
     losses_g,losses_d = model['losses_g'],model['losses_d']
 
     # xgrid
     lsp = np.linspace(0,len(losses_g)-1,num=len(losses_g))
     N = len(losses_g) / config.num_epochs
-    print(N)
-    #print
     xgrid = lsp / N
-
     # log-error
     if log:
         plt.plot(xgrid, np.log(losses_g), c = 'r')
         plt.plot(xgrid, np.log(losses_d), c = 'g')
-
     # error
     else:
         plt.plot(xgrid, losses_g, c = 'r')
         plt.plot(xgrid, losses_d, c = 'g')
-
     plt.rcParams.update({'font.size': 16})
     plt.legend(['Generator', 'Discriminator'])
     plt.xlabel('Batches/Epochs')
@@ -45,11 +47,11 @@ def error_plot(model, output = None, log = False):
     else:
         plt.show()
 
-
 class confusion:
+    """Performance of discriminator predicting."""
     @staticmethod
     def _perform(model, dataloader, dataname):
-        """"""
+        """The prediction implementation."""
         prediction_score = []
         logging.info("%s data scoring", dataname)
         for i,batch in enumerate(dataloader):
@@ -60,15 +62,30 @@ class confusion:
         return pd.Series(prediction_score)
     @staticmethod
     def _mse(score):
+        """MSE of the score tensor given."""
         return (score**2).mean()
     @staticmethod
     def _miss(vector):
+        """Missclassification of the vector given."""
         return 1 - vector.mean()
     @classmethod
     def _score(cls, score):
+        """Compute MSE and missclassification of the score given.
+        
+        Args:
+            score (torch.Tensor): Score to measure.
+        """
         return {'mse': cls._mse(score), 'miss': cls._miss(score < .5)}
     @classmethod
     def ScalarIncremental(cls, train = True, test = True, markov = True, N = 5000):
+        """Measures ScalarIncremental Discriminator performance.
+        
+        Args:
+            train (bool): Use train data.
+            test (bool): Use test data.
+            markov (bool): Use Markov data.
+            N (int): Number of Generator outputs.
+        """
         # load model
         model = gan.load("models/nn/ScalarIncremental.model")
         model_d = model['discriminator']\
@@ -108,6 +125,14 @@ class confusion:
         return score
     @classmethod
     def ClosestWord2Vec(cls, train = True, test = True, markov = True, N = 5000):
+        """Measures ClosestWord2Vec Discriminator performance.
+        
+        Args:
+            train (bool): Use train data.
+            test (bool): Use test data.
+            markov (bool): Use Markov data.
+            N (int): Number of Generator outputs.
+        """
         # load model
         model = gan.load("models/nn/ClosestWord2Vec.model")
         model_d = model['discriminator']\
@@ -147,6 +172,14 @@ class confusion:
         return score
     @classmethod
     def Bert(cls, train = True, test = True, markov = True, N = 5000):
+        """Measures Bert Discriminator performance.
+        
+        Args:
+            train (bool): Use train data.
+            test (bool): Use test data.
+            markov (bool): Use Markov data.
+            N (int): Number of Generator outputs.
+        """
         # load model
         model = gan.load("models/nn/Bert.model")
         model_d = model['discriminator']\
@@ -186,8 +219,14 @@ class confusion:
         return score
     
 class generate:
+    """"""
     @staticmethod
     def ScalarIncremental(N = 1):
+        """Generates text from ScalarIncremental.
+        
+        Args:
+            N (int): Number of samples.
+        """
         # load model
         model = gan.load("models/nn/ScalarIncremental.model")
         model_g = model['generator'].eval();
@@ -204,8 +243,6 @@ class generate:
                 # get word
                 word_code = pred_g[sentence_idx, word_idx, 0].round()
                 word = embeddings.rev.ScalarIncremental(int(word_code))
-                # add word to sentence
-                #print('  ',word_code, word)
                 if word is not None:
                     words.append(word)
             sentences.append(' '.join(words))
@@ -213,6 +250,11 @@ class generate:
         
     @staticmethod
     def ClosestWord2Vec(N = 1):
+        """Generates text from ClosestWord2Vec.
+        
+        Args:
+            N (int): Number of samples.
+        """
         # load model
         model = gan.load("models/nn/ClosestWord2Vec.model")
         model_g = model['generator'].eval();
@@ -238,6 +280,11 @@ class generate:
         return pd.Series(sentences)
     @staticmethod
     def Bert(N = 1):
+        """Generates text from Bert.
+        
+        Args:
+            N (int): Number of samples.
+        """
         # load model
         model = gan.load("models/nn/Bert.model")
         model_g = model['generator']\

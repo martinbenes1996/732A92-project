@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
 """
-Fetch data.
+This module fetches the cyberbully dataset and parses it into words.csv and sentences.csv.
+
+@author: Martin Benes
 """
 
 import logging
@@ -20,7 +23,14 @@ TWITTER_RACISM_URL = URL % ('22895549/twitter_racism_parsed_dataset.csv')
 TWITTER_SEXISM_URL = URL % ('22895561/twitter_sexism_parsed_dataset.csv')
 
 def parse_figshare_dataset(url, sentiment = None, source = None, columns = None):
-    """FigShare dataset downloading and parsing."""
+    """FigShare dataset downloading and parsing.
+    
+    Args:
+        url ():
+        sentiment ():
+        source ():
+        columns ():
+    """
     logging.info("fetching %s [%s]", source, sentiment)
     # override columns
     columns = {} if columns is None else columns
@@ -56,7 +66,11 @@ def parse_figshare_youtube_kaggle_dataset(*args, **kwargs):
     return x
 
 def bully_dataset(tokenize = True):
-    """Fetch Cyberbully dataset."""
+    """Fetch Cyberbully dataset.
+    
+    Args:
+        tokenize (bool, optional): True if words, False if sentences.
+    """
     # parse datasets
     aggression_df = parse_figshare_dataset(AGGRESSION_URL, 'aggression')
     attack_df     = parse_figshare_dataset(ATTACK_URL, 'attack')
@@ -113,7 +127,4 @@ def bully_dataset(tokenize = True):
     else:
         df.to_csv('data/sentences.csv', index = False)
     
-if __name__ == "__main__":
-    logging.basicConfig(level = logging.INFO)
-    bully_dataset(tokenize = False)
     

@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jan  2 12:03:09 2021
+The Markov Chain generator.
 
-@author: martin
-
-TODO:
-    * threshold to prior
+@author: Martin Benes
 """
 
-import sys
-sys.path.append('src')
 import logging
-
 import numpy as np
 import pandas as pd
+import sys
+sys.path.append('src')
 
 import dataset
 
