@@ -80,6 +80,19 @@ result = evaluate.generate.Bert(N = 10) # default 1
 result.to_csv('output/bert.txt', index = False)
 ```
 
+Generate Markov Chain text with
+
+```{python}
+import dataset
+import markov
+
+# load train data
+words = dataset._read_words()
+# train markov chain and predict
+result = markov.generate_sentences(words = words, N = 1000)
+predictions.to_csv('output/markov.txt', index = False)
+```
+
 ### Measure performance
 
 Code will attempt to load the modules from the paths
