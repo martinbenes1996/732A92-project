@@ -32,8 +32,8 @@ Data come from [figshare.com](https://figshare.com/articles/Cyberbullying_datase
 ```{python}
 import fetch
 
-bully_dataset(tokenize = False) # sentences
-bully_dataset(tokenize = True) # words
+fetch.bully_dataset(tokenize = False) # sentences
+fetch.bully_dataset(tokenize = True) # words
 ```
 
 ## Training
