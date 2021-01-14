@@ -212,7 +212,7 @@ class generate:
         return pd.Series(sentences)
         
     @staticmethod
-    def ClosestWord2Vec(model, N = 1):
+    def ClosestWord2Vec(N = 1):
         # load model
         model = gan.load("models/nn/ClosestWord2Vec.model")
         model_g = model['generator'].eval();

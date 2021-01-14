@@ -42,6 +42,7 @@ config.batch_size = 1
 model = train.Bert()
 
 model = gan.load('models/nn/Bert.model')
+config.num_epochs = 4
 evaluate.error_plot(model)
 
 model = gan.load('models/nn/ClosestWord2Vec.model')
