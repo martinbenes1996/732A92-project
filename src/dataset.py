@@ -15,7 +15,7 @@ import re
 import sys
 
 from gensim.models import Word2Vec
-from rapidfuzz import fuzz, process
+#from rapidfuzz import fuzz, process
 from sklearn.model_selection import train_test_split
 import spacy
 

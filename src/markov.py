@@ -6,8 +6,10 @@ The Markov Chain generator.
 """
 
 import logging
+import math
 import numpy as np
 import pandas as pd
+import pickle
 import sys
 sys.path.append('src')
 
@@ -191,8 +193,64 @@ class MarkovChain:
         logging.info('generating %d predictions', N)
         words = model.predict(N = N, threshold = 0)
         sentences = words.apply(lambda l: ' '.join(l))
-        return sentences      
+        return sentences
+    
+    def _likelihood(self, current_word, next_word, eps = 1e-12):
+        """"""
+        # get ids
+        current_word_id = self._word_id(current_word)
+        next_word_id = self._word_id(next_word)
+        # get count
+        if current_word_id not in self._data:
+            return eps
+        bigram_count = self._data[current_word_id]['next'].get(next_word_id, 0)
+        if bigram_count == 0:
+            return eps
+        bigram_prob = bigram_count / sum(self._data[current_word_id]['next'].values())
+        #print((current_word,next_word), bigram_prob)
+        return bigram_prob
 
+    @classmethod
+    def _perplexity(cls, test_words = None):
+        """Trains Markov Chain and computes perplexity on test data."""
+        # try loading
+        try:
+            logging.info("loading model")
+            fp = open('models/train_mc.pickle','rb')
+            model = pickle.load(fp)
+            fp.close()
+        # train and save
+        except:
+            logging.info('model not found, retraining')
+            # read data
+            train_words = dataset._read_train_words()\
+                .reset_index(drop=True)\
+                .text
+            # train model
+            model = cls()
+            logging.info('training %s model', __class__.__name__)
+            model.fit(train_words)
+            # save
+            with open('models/train_mc.pickle','wb') as fp:
+                pickle.dump(model, fp)
+        # load test data
+        else:
+            if test_words is None:
+                test_words = dataset._read_test_words()\
+                    .reset_index(drop=True)\
+                    .text
+        # iterate sentences
+        N = 0
+        llik = 0
+        for test_word in test_words:
+            N += len(test_word) - 1
+            for j in range(len(test_word)-1):
+                current_word,next_word = test_word[j],test_word[j+1]
+                # get log likelihood of the bigram
+                lik = model._likelihood(current_word, next_word)
+                llik += math.log(lik)
+        perplexity = math.exp(-1/N * llik)
+        return perplexity
 def generate_sentences(words = None, N = 1, threshold = 0):
     """Trains the model and generates N sentences.
         
@@ -203,3 +261,40 @@ def generate_sentences(words = None, N = 1, threshold = 0):
     """
     # distribute to the class
     return MarkovChain.generate_sentences(words = words, N = N, threshold = 0)
+
+def test_perplexity():
+    """Trains Markov Chain and computes perplexity on test data."""
+    # distribute to the class
+    test_words = dataset._read_test_words()
+    #print(test_words)
+    return MarkovChain._perplexity(test_words)
+def markov_perplexity():
+    """Trains Markov Chain and computes perplexity on test data."""
+    # distribute to the class
+    markov_words = dataset.markov()
+    #print(markov_words)
+    return MarkovChain._perplexity(markov_words)
+def word2vec_perplexity():
+    """Trains Markov Chain and computes perplexity on test data."""
+    # distribute to the class
+    word2vec_sentences = pd.read_csv('output/word2vec.txt', header=0)['0']
+    word2vec_words = word2vec_sentences.apply(lambda sentence: [word for word in sentence.split(' ')])
+    #print(word2vec_words)
+    return MarkovChain._perplexity(word2vec_words)
+def bert_perplexity():
+    """Trains Markov Chain and computes perplexity on test data."""
+    # distribute to the class
+    bert_sentences = pd.read_csv('output/bert.txt', header=0)['0']
+    bert_words = bert_sentences.apply(lambda sentence: [word for word in sentence.split(' ')])
+    #print(bert_words)
+    return MarkovChain._perplexity(bert_words)
+
+
+test_ppx = test_perplexity()
+print("Test:", test_ppx)
+markov_ppx = markov_perplexity()
+print("Markov:", markov_ppx)
+word2vec_ppx = word2vec_perplexity()
+print("Word2Vec:", word2vec_ppx)
+bert_ppx = bert_perplexity()
+print("Bert:", bert_ppx)
